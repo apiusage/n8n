@@ -1,0 +1,312 @@
+{
+  "name": "Youtube Shorts Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1536,
+        64
+      ],
+      "id": "1171136c-6102-4e87-af4c-6aee01bc0e35",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Please Give me a New Prompt Everytime.",
+        "options": {
+          "systemMessage": "=You are a professional Viral YouTube Shorts Video Prompt Generator AI for Veo 3.1. Your job is to create a single, ready-to-paste prompt that makes Veo 3.1 generate a **complete 8-second motivational video with voice-over and background music** — ready to upload to YouTube Shorts with zero editing.\\n\\n---\\n🎯 **OBJECTIVE:**\\nGenerate a Veo 3.1 prompt that produces:\\n1. A cinematic motivational video (<8 seconds)\\n2. Dynamic visuals with emotional storytelling\\n3. Powerful motivational voice-over (text-to-speech)\\n4. Background music synced with speech rhythm\\n5. 9:16 portrait ratio, ready for YouTube Shorts\\n\\n---\\n💡 **OUTPUT FORMAT:**\\nReturn only the final Veo 3.1 prompt in this format:\\n\\n🎬 **Veo 3.1 Prompt:**\\nCreate a cinematic motivational YouTube Short under 8 seconds.\\n\\n**Visual Scene:** [Describe the main visual moment — include cinematic camera shots, mood, time of day, and human emotion. Example: “A teenager wiping sweat from his face after workout, camera zooms slowly as sunlight hits his face — symbolizing victory.”]\\n\\n**Audio Design:**\\n- Use deep cinematic bass and emotional piano or orchestral rise.\\n- Synchronize beats and scene transitions with the rhythm of the voice.\\n- Ensure sound mix builds motivation and hope.\\n\\n**Voice-over (Text-to-Speech Script):** [Write a short, viral motivational line under 18 words. Use emotionally charged phrasing. Example: “Don’t wait for the perfect moment — make this one count.”]\\n\\n**Voice Style:** Deep, passionate, inspiring male voice with emotion and clarity.\\n\\n**Style:** 9:16 portrait, ultra-realistic, cinematic tone, motivational energy, smooth camera movement, warm lighting, inspiring atmosphere, perfectly synced visuals and sound.\\n\\n---\\n⚡ **RULES:**\\n- Script < 8 seconds when spoken.\\n- Avoid filler words or repetition.\\n- Focus on raw emotion: comeback, growth, mindset, struggle, victory.\\n- Must sound like a viral YouTube Shorts motivational reel.\\n- Return ONLY the formatted Veo 3.1 prompt, nothing else."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1312,
+        64
+      ],
+      "id": "be1891fd-6685-4ba0-8e08-effb23523a3a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        288
+      ],
+      "id": "4e1afa1e-5d8f-4ec6-b1e8-f9fd982e873b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iED7I7FL8mbSO3dg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input text (from previous node)\nconst input = $input.first().json.output ;  // replace \"text\" with your field name\n\n// Extract the voice-over script\nconst voiceMatch = input.match(/\\*\\*Voice-over \\(Text-to-Speech Script\\):\\*\\*\\s*([^*]+)\\n/i);\nconst title = voiceMatch ? voiceMatch[1].trim().replace(/^['\"]|['\"]$/g, \"\") : \"\";\n\n// Remove the voice-over part from the full text to isolate the Veo prompt\nconst veoPrompt = input\n  .replace(/\\*\\*Voice-over \\(Text-to-Speech Script\\):\\*\\*[^*]+(\\*\\*|$)/i, \"\")\n  .trim();\n\n// Output structured data\nreturn [\n  {\n    json: {\n      title,\n      veo_prompt: veoPrompt\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        64
+      ],
+      "id": "ff84e0a1-2a64-4570-a3b6-8773a1501b91",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "AIzaSyDVuDb5JboVfKChcStNdhD4ZVTycU_qZfw"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n\"instances\": [\n{\n\"prompt\": $json.veo_prompt\n}\n],\n\"parameters\": {\n\"aspectRatio\": \"9:16\"\n}\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -736,
+        64
+      ],
+      "id": "57c108b3-46dd-48fc-bbf7-b00e26307dab",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "=https://generativelanguage.googleapis.com/v1beta/{{ $json.name }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "AIzaSyDVuDb5JboVfKChcStNdhD4ZVTycU_qZfw"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -512,
+        64
+      ],
+      "id": "9e72b8ba-d0e2-4f6d-84f5-e0dba3460c9d",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c9b7445f-48f1-4de1-aeac-8e4a4768a86e",
+              "leftValue": "={{ $json.toJsonString( )}}",
+              "rightValue": "done",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -288,
+        -16
+      ],
+      "id": "f37debe9-a581-405e-ad36-ba71f4521fc3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "amount": 4
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -64,
+        128
+      ],
+      "id": "119afdb4-2250-49ce-b51d-e44d465a3d79",
+      "name": "Wait",
+      "webhookId": "c5ae02ee-f95e-4138-90fd-0e37e80a6279",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.response.generateVideoResponse.generatedSamples[0].video.uri }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "AIzaSyDVuDb5JboVfKChcStNdhD4ZVTycU_qZfw"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "dialogue_example.mp4"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -64,
+        -48
+      ],
+      "id": "6874c67b-8e39-41a4-9296-9f4570e6b5bc",
+      "name": "HTTP Request2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "83df622d-1738-42a7-97ae-6b5b448850cf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "efdc2874b7a91a05de85fbf99131fb2dc263a2d077ed7ce4c0264b6442cc0674"
+  },
+  "id": "AbWb9JFjRjDdS46R",
+  "tags": []
+}
